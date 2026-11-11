@@ -24,6 +24,8 @@ public class MainActivity extends Activity {
     // Set true only if you need SharedArrayBuffer (e.g. the threaded PPSSPP core).
     // Warning: cross-origin isolation can block YouTube embeds.
     static final boolean ISOLATE = false;
+    // Zoom level: 1.0 = normal, 0.75 = zoomed out (more screen area visible), 0.5 = very zoomed out.
+    static final float ZOOM = 0.75f;
 
     FrameLayout root;
     WebView web;
@@ -140,7 +142,15 @@ public class MainActivity extends Activity {
         Collections.sort(parts);
         Vector<InputStream> v = new Vector<>();
         for (String n : parts) v.add(getAssets().open(n, android.content.res.AssetManager.ACCESS_STREAMING));
-        return new SequenceInputStream(v.elements());
+        InputStream in = new SequenceInputStream(v.elements());
+        // The page's <meta viewport> sits in the first few hundred bytes: rewrite it to apply ZOOM.
+        byte[] head = new byte[8192];
+        int n = 0, r;
+        while (n < head.length && (r = in.read(head, n, head.length - n)) > 0) n += r;
+        String h = new String(head, 0, n, "ISO-8859-1");
+        h = h.replace("width=device-width,initial-scale=1,viewport-fit=cover",
+                "width=device-width,initial-scale=" + ZOOM + ",minimum-scale=" + ZOOM + ",viewport-fit=cover");
+        return new SequenceInputStream(new ByteArrayInputStream(h.getBytes("ISO-8859-1")), in);
     }
 
     @Override protected void onActivityResult(int code, int res, Intent data) {
