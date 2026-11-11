@@ -7,9 +7,11 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.util.Log;
 import android.view.WindowManager;
 import android.webkit.*;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -80,6 +82,13 @@ public class MainActivity extends Activity {
                 return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found",
                         new HashMap<String, String>(), new ByteArrayInputStream(new byte[0]));
             }
+            @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
+                Toast.makeText(MainActivity.this, d.didCrash()
+                        ? "WebView crashed - restarting"
+                        : "Android closed the WebView (out of memory) - restarting", Toast.LENGTH_LONG).show();
+                recreate();
+                return true;
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
                 if (HOST.equals(u.getHost()) || !r.isForMainFrame()) return false;
@@ -89,6 +98,20 @@ public class MainActivity extends Activity {
         });
 
         web.setWebChromeClient(new WebChromeClient() {
+            long lastToast;
+            @Override public boolean onConsoleMessage(ConsoleMessage m) {
+                if (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                    Log.e("EmOS", m.message() + " @" + m.sourceId() + ":" + m.lineNumber());
+                    long now = System.currentTimeMillis();
+                    if (now - lastToast > 2500) {
+                        lastToast = now;
+                        String t = m.message();
+                        if (t.length() > 160) t = t.substring(0, 160);
+                        Toast.makeText(MainActivity.this, "JS error: " + t, Toast.LENGTH_LONG).show();
+                    }
+                }
+                return false;
+            }
             @Override public void onPermissionRequest(final PermissionRequest req) {
                 runOnUiThread(() -> {
                     List<String> missing = new ArrayList<>();
