@@ -1,14 +1,1 @@
-plugins { id 'com.android.application' }
-android {
-    namespace 'com.emos.app'
-    compileSdk 34
-    defaultConfig {
-        applicationId 'com.emos.app'
-        minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName '1.0'
-    }
-    androidResources { noCompress 'bin' }
-    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-}
+plugins { id 'com.android.application' version '8.5.2' apply false }
